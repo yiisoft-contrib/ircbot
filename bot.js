@@ -189,14 +189,14 @@ exports.bot = function (from, message) {
 
     for (let word of words) {
         for (let re of [
-            /^[!`]([\w:#\.\\\(\)\$]+)$/,
+            /^[!`·˙]([\w:#\.\\\(\)\$]+)$/,
             /^([\w:#\.\\]+\(\))$/,
             /^([\w:#\.\\]*\$\w+)$/,
             /^((?:::|\.|#)[\w\\]+)$/,
             /^([\w\\]+(?:::|\.|#))$/,
         ]) {
             let m = word.match(re);
-            if (m) {
+            if (m) { 
                 let answer = commands.s([m[1]]);
                 if (answer) {
                     answers.push(answer);
