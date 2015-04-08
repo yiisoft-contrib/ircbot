@@ -32,7 +32,7 @@ exports.bot = function (from, message) {
         s: function (args) {
             var deb = [], lookup, m, c, pattern, items = [], num, url, answer = '',
                 use = 'API search: !s [term | $term | term() | term:: | ::term]. ' +
-                    'Optionally prefix term type and/or namespace';
+                'Optionally prefix term type and/or namespace';
 
             if (!args || args.length === 0) {
                 return use;
@@ -254,8 +254,8 @@ exports.bot = function (from, message) {
             if (commands.hasOwnProperty(cmd) && typeof commands[cmd] === 'function') {
                 answer = commands[cmd].call(this, words);
             } else {
-                answer = 'undefined bot command: ' + cmd;
-                to = from;
+//                answer = 'undefined bot command: ' + cmd;
+//                to = from;
             }
 
             if (answer !== null && to !== null) {
