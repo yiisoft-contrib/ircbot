@@ -4,13 +4,14 @@ exports.bot = function (from, message) {
     var
         docs = require('./docs.json'),
         commands,
+        debLog,
         regex,
         m,
         words,
         cmd = null,
         answers = [],
         to = from,
-        maxLength = 250,
+        maxLength = 420,
         nickPattern = "[-A-}][-0-9A-}]{0,15}";
 
     RegExp.escape = function (text) {
@@ -19,19 +20,25 @@ exports.bot = function (from, message) {
         return text.replace(re, '\\$1');
     };
 
+    debLog = function (deb) {
+        console.log(deb.join(' '));
+    };
+
     commands = {
         help: function () {
             return '!s search the API for docs';
         },
 
         s: function (args) {
-            var lookup, m, c, pattern, items = [], num, url, answer = '',
+            var deb = [], lookup, m, c, pattern, items = [], num, url, answer = '',
                 use = 'API search: !s [term | $term | term() | term:: | ::term]. ' +
                     'Optionally prefix term type and/or namespace';
 
             if (!args || args.length === 0) {
                 return use;
             }
+
+            deb.push('"' + args[0] + '"');
 
             /* The RegExp in PCRE-extended-like form
                  (?:
@@ -51,13 +58,21 @@ exports.bot = function (from, message) {
                  m4  $
                  m5  dropPrimaryKey
                  m6  ()
-                 */
+            */
 
             m = args[0].match(/^([\\\w]*\\)(\w+)$/i) ||
                 args[0].match(/(?:(?:([\w\\]+\\)?(\w+))?(::|\.|#))?(\$)?(\w+)?(\(\))?$/i);
 
+            for (let i in Object.keys(m)) {
+                if (i > 0 && m[i] !== undefined) {
+                    deb.push('m' + i + '="' + m[i] + '"');
+                }
+            }
+
             // Need a match and a keyword.
             if (!m || (!m[5] && !m[2])) {
+                deb.push('bad m');
+                debLog(deb);
                 return null;
             }
 
@@ -66,36 +81,41 @@ exports.bot = function (from, message) {
 
             // Property, method and constant searches are mutually exclusive.
             if (Number(m[4]) + Number(m[6]) + Number(c) > 1) {
+                deb.push('bad m');
+                debLog(deb);
                 return null;
             }
 
             // Lookup the match keyword in the index. Case insensitive and ignoring underscores.
             lookup = (m[5] || m[2]).replace(/_/g, '').toLocaleLowerCase();
             if (!docs.hasOwnProperty(lookup)) {
+                deb.push('nothing');
+                debLog(deb);
                 return null;
             }
 
             // Build a filtering regex pattern, if needed.
             if (m[1] || m[3] || m[4] || m[6] || c) {
-console.log(m);
                 pattern = ['$'];
+                m[5] = m[5] && RegExp.escape(m[5]);
+                m[2] = m[2] && RegExp.escape(m[2]);
+                m[1] = m[1] && RegExp.escape(m[1]);
                 if (m[5]) {
-                    m[5] = RegExp.escape(m[5]);
                     if (m[6]) {
                         pattern.unshift(m[5] + '\\(\\)');
                     } else if (m[4]) {
                         pattern.unshift('\\$' + m[5]);
                     } else if (c) {
                         pattern.unshift(m[5]);
+                    } else {
+                        pattern.unshift('\\$?' + m[5] + '(\\(\\))?');
                     }
                     pattern.unshift('::');
-                } else if (m[2]) {
-                    m[2] = RegExp.escape(m[2]);
-                    pattern.unshift(m[2]);
                 }
 
+                pattern.unshift(m[2]);
+
                 if (m[1]) {
-                    m[1] = RegExp.escape(m[1]);
                     pattern.unshift(m[1]);
                 } else if (m[2]) {
                     pattern.unshift('\\\\');
@@ -103,12 +123,19 @@ console.log(m);
 
                 if (pattern.length > 0) {
                     pattern = pattern.join('');
+                    deb.push('filter=/' + pattern + '/i');
                     pattern = new RegExp(pattern, 'i');
                 } else {
                     pattern = undefined;
                 }
             }
-console.log(pattern);
+
+            if (pattern === undefined) {
+                deb.push('no-filter');
+            }
+
+            deb.push('Nmatch=' + docs[lookup].length);
+
             // Choose the items that match the pattern, if there is one, or all otherwise.
             for (let item of docs[lookup]) {
                 if (!pattern || item[0].match(pattern)) {
@@ -119,6 +146,8 @@ console.log(pattern);
             num = items.length;
 
             if (num === 0) {
+                deb.push('Nfilter=0');
+                debLog(deb);
                 return null;
             }
 
@@ -161,6 +190,8 @@ console.log(pattern);
                 }
             }
 
+            debLog(deb);
+
             return answer;
         }
     };
@@ -200,8 +231,8 @@ console.log(pattern);
             /^[!`·˙]([\w:#\.\\\(\)\$]+)$/,
             /^([\w:#\.\\]+\(\))$/,
             /^([\w:#\.\\]*\$\w+)$/,
-            /^((?:::|\.|#)[\w\\]+)$/,
-            /^([\w\\]+(?:::|\.|#))$/,
+            /^([\w\\]*(?:::|\.|#)[\w]*)$/,
+            /^([\w\\]*\\[\w\\]*)$/
         ]) {
             let m = word.match(re);
             if (m) {
