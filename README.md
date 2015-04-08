@@ -46,18 +46,12 @@ keyword *hasone()*. A number of patterns trigger the search.
 The bot runs an API search in response to:
 
 - The *!s keyword* bot command
-- A keyword pattern that it recognizes as follows, some of which may be combined
-    - name()
-    - $name
-    - NAME
-    - type::name
-    - type::
-    - space\type
+- A keyword pattern that it recognizes including *name()*, *$name*, *NAME*, *::name*, *name::*, *\name*, *name\name*, some of which can be combined
 - A keyword trigger character (exclamation point or backtick) at the start of a word, e.g.
 "Use a \`query object"
 
-In the simplest form, i.e. *!s keyword*, the bot searches for members (methods,
-properties and constants) and types (classes, traits and interfaces) named *keyword*. If it finds
+In the simplest form, i.e. *!s name*, the bot searches for members (methods,
+properties and constants) and types (classes, traits and interfaces) with matching name. If it finds
 one match, it gives the found item's short description and a link to the documentation in yiiframework.com.
 If it finds more than one, it lists them. Some keywords, e.g. *init* match a lot of different items.
 
@@ -68,12 +62,12 @@ You can do several things to narrow a search:
 - Use *ALL_CAPS*, e.g. *POS_READY*, to search for constants.
 - Put *type::* in front of a member name, e.g. *query::all*, to search only in types named *type*.
 - Put *\\* at the start of a name, e.g. *\query*, or *::* at the end, e.g. *query::*, to search only for types.
-- Use a namespace, e.g. *mysql\schema* (matching from right to left).
+- Use a name-space, e.g. *mysql\schema* (matching from right to left).
 
-You can use octothorpe or period instead of paamayim nekudotayim.
+(You can use octothorpe or period instead of paamayim nekudotayim.)
 
-If you specify member and type then the bot will find members defined in a matching type. There
-are just too many matches if inherited members are included.
-
-
+When searching for a member, the bot will find only types that define the member, not
+those that inherit it. (There would be too many matches otherwise.) So if your search
+specifies both type and member names then only matching types defining (not inheriting)
+the member are found.
 
