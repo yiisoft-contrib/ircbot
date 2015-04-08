@@ -46,18 +46,15 @@ keyword *hasone()*. A number of patterns trigger the search.
 The bot runs an API search in response to:
 
 - The *!s keyword* bot command
-- A keyword pattern that it recognizes, including
-
+- A keyword pattern that it recognizes as follows, some of which may be combined
     - name()
     - $name
     - NAME
     - type::name
     - type::
     - space\type
-
-    and some combinations of these.
 - A keyword trigger character (exclamation point or backtick) at the start of a word, e.g.
-"Use a \`query object".
+"Use a \`query object"
 
 In the simplest form, i.e. *!s keyword*, the bot searches for members (methods,
 properties and constants) and types (classes, traits and interfaces) named *keyword*. If it finds
