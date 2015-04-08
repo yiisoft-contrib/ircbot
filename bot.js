@@ -253,9 +253,6 @@ exports.bot = function (from, message) {
             words.shift();
             if (commands.hasOwnProperty(cmd) && typeof commands[cmd] === 'function') {
                 answer = commands[cmd].call(this, words);
-            } else {
-//                answer = 'undefined bot command: ' + cmd;
-//                to = from;
             }
 
             if (answer !== null && to !== null) {
