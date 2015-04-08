@@ -1,2 +1,2 @@
 #!/bin/sh
-node --harmony --use-strict yii2docbot.js $@
+`which node || which nodejs` --harmony --use-strict yii2docbot.js $@
