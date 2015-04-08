@@ -7,28 +7,36 @@ var irc = require('irc'),
     docbot = require(botPath),
     cli = process.argv.indexOf('--repl') > -1,
     reload = process.argv.indexOf('--test') > -1,
+    matches,
     client,
     typesFile,
     botIdent = require('./bot-ident.json'),
-    channel = '#yii',
-    clientSpec = {
-        server: 'chat.freenode.net',
-        nick: botIdent.nick,
-        channels: [channel],
-        userName: botIdent.nick,
-        password: botIdent.password,
-        sasl: true,
-        port: 6697,
-        secure: true,
-        autoConnect: true
-    };
+    channel = '#yii2docbot',
+    clientSpec;
 
 for (let arg of process.argv) {
-    let matches = arg.match(/^--types=(.+)$/);
+    matches = arg.match(/^--types=(.+)$/);
     if (matches) {
         typesFile = matches[1];
     }
+
+    matches = arg.match(/^--channel=(.+)$/);
+    if (matches) {
+        channel = matches[1];
+    }
 }
+
+clientSpec = {
+    server: 'chat.freenode.net',
+    nick: botIdent.nick,
+    channels: [channel],
+    userName: botIdent.nick,
+    password: botIdent.password,
+    sasl: true,
+    port: 6697,
+    secure: true,
+    autoConnect: true
+};
 
 if (typesFile) {
     let fs = require('fs'),
@@ -38,7 +46,7 @@ if (typesFile) {
         item,
         addNode = function (kind, type, item) {
             var name = type.name,
-                keyword = item.name.match(/\w+$/)[0].toLowerCase();
+                keyword = item.name.match(/\w+$/)[0].replace(/_/g, '').toLowerCase();
 
             if (kind !== 't') {
                 if (item.definedBy !== type.name) {

@@ -1,1 +1,1 @@
-#!/usr/bin/env node --harmony --use-strict yii2docbot.js
+#!/usr/bin/env -S node --harmony --use-strict yii2docbot.js

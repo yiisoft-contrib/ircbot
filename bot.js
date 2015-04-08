@@ -13,7 +13,7 @@ exports.bot = function (from, message) {
         maxLength = 250,
         nickPattern = "[-A-}][-0-9A-}]{0,15}";
 
-    RegExp.escape = function(text) {
+    RegExp.escape = function (text) {
         var specials = ['/', '.', '*', '+', '?', '|', '(', ')', '[', ']', '{', '}', '\\'],
             re = new RegExp('(\\' + specials.join('|\\') + ')', 'g');
         return text.replace(re, '\\$1');
@@ -25,84 +25,92 @@ exports.bot = function (from, message) {
         },
 
         s: function (args) {
-            var index, m, pattern, items = [], num, url, answer = '',
+            var lookup, m, c, pattern, items = [], num, url, answer = '',
                 use = 'API search: !s [term | $term | term() | term:: | ::term]. ' +
-                'Optionally prefix term type and/or namespace';
+                    'Optionally prefix term type and/or namespace';
 
             if (!args || args.length === 0) {
                 return use;
             }
 
             /* The RegExp in PCRE-extended-like form
-                    (?:
-                        (?: ([\w\\]+ \\)? (\w+) )?
-                        (::|\.|#)
-                    )?
-                    (\$)?
-                    (\w+)?
-                    (\(\))?
-                    $
-                Contrived example: "yii\db\querybuilder::$dropPrimaryKey()"
-                  (normally $ and () are not both allowed)
-                Matches:
-                    m1  yii\db
-                    m2  querybuilder
-                    m3  ::
-                    m4  $
-                    m5  dropPrimaryKey
-                    m6  ()
-            */
-            m = args[0].match(/(?:(?:([\w\\]+\\)?(\w+))?(::|\.|#))?(\$)?(\w+)?(\(\))?$/i);
+                 (?:
+                     (?: ([\w\\]+ \\)? (\w+) )?
+                     (::|\.|#)
+                 )?
+                 (\$)?
+                 (\w+)?
+                 (\(\))?
+                 $
+               Contrived example: "yii\db\querybuilder::$dropPrimaryKey()"
+                 (normally $ and () are not both allowed)
+               Matches:
+                 m1  yii\db
+                 m2  querybuilder
+                 m3  ::
+                 m4  $
+                 m5  dropPrimaryKey
+                 m6  ()
+                 */
 
-            if (!m || (!m[5] && !m[2]) || (m[4] === '$' && m[6] === '()')) {
-                return use;
-            }
+            m = args[0].match(/^([\\\w]*\\)(\w+)$/i) ||
+                args[0].match(/(?:(?:([\w\\]+\\)?(\w+))?(::|\.|#))?(\$)?(\w+)?(\(\))?$/i);
 
-            // The docs index key is m5 or m2 in lower case.
-            index = (m[5] || m[2]).toLocaleLowerCase();
-            if (!docs.hasOwnProperty(index)) {
+            // Need a match and a keyword.
+            if (!m || (!m[5] && !m[2])) {
                 return null;
             }
 
-            // Build a regex pattern from to match on fully qualified item names.
-            if (m[3] || m[4] || m[6]) {
-                pattern = [];
+            // Does m5 look like a constant?
+            c = m[5] && m[5].match(/^[A-Z0-9_]+$/);
+
+            // Property, method and constant searches are mutually exclusive.
+            if (Number(m[4]) + Number(m[6]) + Number(c) > 1) {
+                return null;
+            }
+
+            // Lookup the match keyword in the index. Case insensitive and ignoring underscores.
+            lookup = (m[5] || m[2]).replace(/_/g, '').toLocaleLowerCase();
+            if (!docs.hasOwnProperty(lookup)) {
+                return null;
+            }
+
+            // Build a filtering regex pattern, if needed.
+            if (m[1] || m[3] || m[4] || m[6] || c) {
+console.log(m);
+                pattern = ['$'];
                 if (m[5]) {
-                    if (m[3] || m[4] || m[6]) {
-                        pattern.unshift('$');
-                    }
+                    m[5] = RegExp.escape(m[5]);
                     if (m[6]) {
-                        pattern.unshift('\\(\\)');
-                    }
-                    pattern.unshift(RegExp.escape(m[5]));
-                    if (m[4]) {
-                        pattern.unshift('\\$');
+                        pattern.unshift(m[5] + '\\(\\)');
+                    } else if (m[4]) {
+                        pattern.unshift('\\$' + m[5]);
+                    } else if (c) {
+                        pattern.unshift(m[5]);
                     }
                     pattern.unshift('::');
+                } else if (m[2]) {
+                    m[2] = RegExp.escape(m[2]);
+                    pattern.unshift(m[2]);
                 }
-                if (m[3] && !m[5]) {
-                    pattern.unshift('$');
-                }
-                if (m[2]) {
-                    pattern.unshift(RegExp.escape(m[2]));
-                }
-                if (m[3] && !m[5]) {
-                    pattern.unshift('(?:^|\\\\)');
-                }
+
                 if (m[1]) {
-                    pattern.unshift(RegExp.escape(m[1]));
+                    m[1] = RegExp.escape(m[1]);
+                    pattern.unshift(m[1]);
+                } else if (m[2]) {
+                    pattern.unshift('\\\\');
                 }
+
                 if (pattern.length > 0) {
                     pattern = pattern.join('');
-                    console.log(pattern);
                     pattern = new RegExp(pattern, 'i');
                 } else {
                     pattern = undefined;
                 }
             }
-
+console.log(pattern);
             // Choose the items that match the pattern, if there is one, or all otherwise.
-            for (let item of docs[index]) {
+            for (let item of docs[lookup]) {
                 if (!pattern || item[0].match(pattern)) {
                     items.push(item);
                 }
@@ -196,7 +204,7 @@ exports.bot = function (from, message) {
             /^([\w\\]+(?:::|\.|#))$/,
         ]) {
             let m = word.match(re);
-            if (m) { 
+            if (m) {
                 let answer = commands.s([m[1]]);
                 if (answer) {
                     answers.push(answer);
