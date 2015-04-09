@@ -1,27 +1,22 @@
 exports.bot = function (from, message) {
     'use strict';
 
-    var
-        docs = require('./docs.json'),
+    var docs = require('./docs.json'),
         commands,
-        debLog,
         regex,
-        m,
+        matches,
         words,
-        cmd = null,
         answers = [],
         to = from,
         maxLength = 420,
-        nickPattern = "[-A-}][-0-9A-}]{0,15}";
+        debugLog = function (msgArray) {
+            console.log(msgArray.join(' '));
+        };
 
     RegExp.escape = function (text) {
         var specials = ['/', '.', '*', '+', '?', '|', '(', ')', '[', ']', '{', '}', '\\'],
             re = new RegExp('(\\' + specials.join('|\\') + ')', 'g');
         return text.replace(re, '\\$1');
-    };
-
-    debLog = function (deb) {
-        console.log(deb.join(' '));
     };
 
     commands = {
@@ -30,49 +25,50 @@ exports.bot = function (from, message) {
         },
 
         s: function (args) {
-            var deb = [], lookup, m, c, pattern, items = [], num, url, answer = '',
-                use = 'API search: !s [term | $term | term() | term:: | ::term]. ' +
-                'Optionally prefix term type and/or namespace';
+            var debugMsg = [], lookup, m, c, pattern, items = [], num, answer = '';
 
             if (!args || args.length === 0) {
-                return use;
+                return 'API search: !s [term | $term | term() | term:: | ::term]. ' +
+                    'Optionally prefix term type and/or namespace';
             }
 
-            deb.push('"' + args[0] + '"');
+            debugMsg.push('"' + args[0] + '"');
 
-            /* The RegExp in PCRE-extended-like form
-                 (?:
-                     (?: ([\w\\]+ \\)? (\w+) )?
-                     (::|\.|#)
-                 )?
-                 (\$)?
-                 (\w+)?
-                 (\(\))?
-                 $
-               Contrived example: "yii\db\querybuilder::$dropPrimaryKey()"
-                 (normally $ and () are not both allowed)
-               Matches:
-                 m1  yii\db
-                 m2  querybuilder
-                 m3  ::
-                 m4  $
-                 m5  dropPrimaryKey
-                 m6  ()
+            /* Decompose the query!
+               The longer pattern below in PCRE-extended-like form:
+                   (?:
+                       (?: ([\w\\]+ \\)? (\w+) )?
+                       (:: | \. | #)
+                   )?
+                   (\$)?
+                   (\w+)?
+                   (\(\))?
+                   $
+               e.g. "yii\db\querybuilder::$dropPrimaryKey()" matches as:
+                   m[1]  yii\db
+                   m[2]  querybuilder
+                   m[3]  ::
+                   m[4]  $
+                   m[5]  dropPrimaryKey
+                   m[6]  ()
+               The shorter one matches naked namespace\type combos, e.g. "yii\db\querybuilder" as:
+                   m[1]  yii\db
+                   m[2]  querybuilder
+               Test in: https://regex101.com/
             */
-
             m = args[0].match(/^([\\\w]*\\)(\w+)$/i) ||
                 args[0].match(/(?:(?:([\w\\]+\\)?(\w+))?(::|\.|#))?(\$)?(\w+)?(\(\))?$/i);
 
             for (let i in Object.keys(m)) {
                 if (i > 0 && m[i] !== undefined) {
-                    deb.push('m' + i + '="' + m[i] + '"');
+                    debugMsg.push('m' + i + '="' + m[i] + '"');
                 }
             }
 
             // Need a match and a keyword.
             if (!m || (!m[5] && !m[2])) {
-                deb.push('bad m');
-                debLog(deb);
+                debugMsg.push('bad m');
+                debugLog(debugMsg);
                 return null;
             }
 
@@ -81,18 +77,20 @@ exports.bot = function (from, message) {
 
             // Property, method and constant searches are mutually exclusive.
             if (Number(m[4]) + Number(m[6]) + Number(c) > 1) {
-                deb.push('bad m');
-                debLog(deb);
+                debugMsg.push('bad m');
+                debugLog(debugMsg);
                 return null;
             }
 
             // Lookup the match keyword in the index. Case insensitive and ignoring underscores.
             lookup = (m[5] || m[2]).replace(/_/g, '').toLocaleLowerCase();
             if (!docs.hasOwnProperty(lookup)) {
-                deb.push('nothing');
-                debLog(deb);
+                debugMsg.push('nothing');
+                debugLog(debugMsg);
                 return null;
             }
+
+            debugMsg.push('Nmatch=' + docs[lookup].length);
 
             // Build a filtering regex pattern, if needed.
             if (m[1] || m[3] || m[4] || m[6] || c) {
@@ -123,18 +121,14 @@ exports.bot = function (from, message) {
 
                 if (pattern.length > 0) {
                     pattern = pattern.join('');
-                    deb.push('filter=/' + pattern + '/i');
+                    debugMsg.push('filter=/' + pattern + '/i');
                     pattern = new RegExp(pattern, 'i');
                 } else {
                     pattern = undefined;
                 }
+            } else {
+                debugMsg.push('no-filter');
             }
-
-            if (pattern === undefined) {
-                deb.push('no-filter');
-            }
-
-            deb.push('Nmatch=' + docs[lookup].length);
 
             // Choose the items that match the pattern, if there is one, or all otherwise.
             for (let item of docs[lookup]) {
@@ -146,12 +140,13 @@ exports.bot = function (from, message) {
             num = items.length;
 
             if (num === 0) {
-                deb.push('Nfilter=0');
-                debLog(deb);
+                debugMsg.push('Nfilter=0');
+                debugLog(debugMsg);
                 return null;
             }
 
             if (num === 1) {
+                let url;
                 // One answer. The bot can reply the short description and doc URL.
 
                 // The short description.
@@ -190,40 +185,59 @@ exports.bot = function (from, message) {
                 }
             }
 
-            debLog(deb);
+            // Remove the search term from the message words so it isn't subject to snooping.
+            words.unshift();
 
+            debugLog(debugMsg);
             return answer;
         }
     };
 
     words = [];
     regex = new RegExp('(?:\\S+)+', 'g');
-    m = regex.exec(message);
-    while (m !== null) {
-        words.push(m[0]);
-        m = regex.exec(message);
+    matches = regex.exec(message);
+    while (matches !== null) {
+        words.push(matches[0]);
+        matches = regex.exec(message);
     }
 
     if (words.length === 0) {
         return null;
     }
 
-    regex = new RegExp('^(' + nickPattern + '):$');
-    m = words[0].match(regex);
-    if (m !== null) {
-        to = m[1];
+    matches = words[0].match(/^([-A-}][-0-9A-}]{0,15}):$/);
+    if (matches !== null) {
+        to = matches[1];
         words.shift();
     } else {
-        regex = new RegExp('^@(' + nickPattern + ')$');
-        m = words[words.length - 1].match(regex);
-        if (m !== null) {
-            to = m[1];
+        matches = words[words.length - 1].match(/^@([-A-}][-0-9A-}]{0,15})$/);
+        if (matches !== null) {
+            to = matches[1];
             words.pop();
         }
     }
 
     if (words.length === 0) {
         return null;
+    }
+
+    matches = words[0].match(/^!([#-~]+)$/);
+    if (matches) {
+        let answer,
+            cmd = matches[1];
+
+        if (commands.hasOwnProperty(cmd)) {
+            let save = words.shift();
+            answer = commands[cmd].call(undefined, words);
+            if (answer) {
+                if (to) {
+                    answer = to + ': ' + answer;
+                }
+                answers = [answer];
+            } else {
+                words.unshift(save);
+            }
+        }
     }
 
     for (let word of words) {
@@ -234,33 +248,12 @@ exports.bot = function (from, message) {
             /^([\w\\]*(?:::|\.|#)[\w]*)$/,
             /^([\w\\]*\\[\w\\]*)$/
         ]) {
-            let m = word.match(re);
-            if (m) {
-                let answer = commands.s([m[1]]);
+            matches = word.match(re);
+            if (matches) {
+                let answer = commands.s([matches[1]]);
                 if (answer) {
                     answers.push(answer);
                 }
-            }
-        }
-    }
-
-    if (answers.length === 0) {
-        regex = new RegExp('^!([#-~]+)$');
-        m = words[0].match(regex);
-        if (m !== null) {
-            let answer = null;
-            cmd = m[1];
-            words.shift();
-            if (commands.hasOwnProperty(cmd) && typeof commands[cmd] === 'function') {
-                answer = commands[cmd].call(this, words);
-            }
-
-            if (answer !== null && to !== null) {
-                answer = to + ': ' + answer;
-            }
-
-            if (answer) {
-                answers = [answer];
             }
         }
     }

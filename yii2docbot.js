@@ -1,60 +1,44 @@
 'use strict';
 
-var irc = require('irc'),
-    repl = require('repl'),
-    path = require('path'),
+var path = require('path'),
     botPath = path.resolve('./bot.js'),
     docbot = require(botPath),
-    cli = process.argv.indexOf('--repl') > -1,
-    reload = process.argv.indexOf('--test') > -1,
-    matches,
-    client,
-    typesFile,
-    botIdent = require('./bot-ident.json'),
-    channel = '#yii2docbot',
-    clientSpec;
+    options = {
+        channel: '#yii2docbot',
+        cli: process.argv.indexOf('--repl') > -1,
+        reload: process.argv.indexOf('--test') > -1,
+        typesFile: undefined
+    },
+    client;
 
 for (let arg of process.argv) {
-    matches = arg.match(/^--types=(.+)$/);
+    let matches = arg.match(/^--(types|channel)=(.+)$/);
     if (matches) {
-        typesFile = matches[1];
-    }
-
-    matches = arg.match(/^--channel=(.+)$/);
-    if (matches) {
-        channel = matches[1];
+        options[matches[1]] = matches[2];
     }
 }
 
-clientSpec = {
-    server: 'chat.freenode.net',
-    nick: botIdent.nick,
-    channels: [channel],
-    userName: botIdent.nick,
-    password: botIdent.password,
-    sasl: true,
-    port: 6697,
-    secure: true,
-    autoConnect: true
-};
-
-if (typesFile) {
+if (options.typesFile !== undefined) {
     let fs = require('fs'),
-        type,
-        types,
+        types = require(options.typesFile),
         index = {},
-        item,
+
+        /**
+         * Adds a key (if needed) and a leaf node to index, i.e. the search tree.
+         * @param {String} kind What kind of API item to add "t" = type, "m" = method, also "p" and "c"
+         * @param {Object} type The phpdoc object for the type to which the API element belongs
+         * @param {Object} item The phpdoc object for the API item to add
+         */
         addNode = function (kind, type, item) {
             var name = type.name,
                 keyword = item.name.match(/\w+$/)[0].replace(/_/g, '').toLowerCase();
 
             if (kind !== 't') {
-                if (item.definedBy !== type.name) {
+                if (item.definedBy === type.name) {
                     return;
                 }
 
                 name += '::' + item.name;
-
                 if (kind === 'm') {
                     name += '()';
                 }
@@ -63,14 +47,11 @@ if (typesFile) {
             if (!index.hasOwnProperty(keyword)) {
                 index[keyword] = [];
             }
-
             index[keyword].push([name, item.shortDescription]);
         };
 
-    types = require(typesFile);
-
     for (let fqTypeName of Object.keys(types)) {
-        type = types[fqTypeName];
+        let type = types[fqTypeName];
         addNode('t', type, type);
         for (let kind of ['methods', 'properties', 'constants']) {
             if (type.hasOwnProperty(kind) && type[kind]) {
@@ -81,16 +62,19 @@ if (typesFile) {
         }
     }
 
-    fs.writeFile('./docs.json', JSON.stringify(index, null, '    '));
+    // Write the documentation index to a JSON file.
+    fs.writeFile('./docs.json', JSON.stringify(index, null, '  '));
 }
 
-if (cli) {
+if (options.cli) {
+    let repl = require('repl');
+
     client = repl.start({
         prompt: 'docbot> ',
         "eval": function (cmd, context, filename, callback) {
             var error, answers;
             try {
-                if (reload) {
+                if (options.reload) {
                     delete require.cache[botPath];
                     docbot = require(botPath);
                 }
@@ -104,21 +88,35 @@ if (cli) {
         }
     });
 } else {
-    client = new irc.Client(clientSpec.server, clientSpec.nick, clientSpec);
+    let irc = require('irc'),
+        clientIdent = require('./bot-ident.json'),
+        clientOptions = {
+            server: 'chat.freenode.net',
+            nick: clientIdent.nick,
+            channels: [options.channel],
+            userName: clientIdent.nick,
+            password: clientIdent.password,
+            sasl: true,
+            port: 6697,
+            secure: true,
+            autoConnect: true
+        };
+
+    client = new irc.Client(clientOptions.server, clientOptions.nick, clientOptions);
     client.addListener('error', function (message) {
         console.log('error: ', message);
     });
-    client.addListener('message' + channel, function (from, message) {
+    client.addListener('message' + options.channel, function (from, message) {
         var answers;
         console.log(from + ': ' + message);
-        if (reload) {
+        if (options.reload) {
             delete require.cache[botPath];
             docbot = require(botPath);
         }
         answers = docbot.bot(from, message);
         if (answers) {
             for (let answer of answers) {
-                client.say(channel, answer);
+                client.say(options.channel, answer);
             }
         }
     });
