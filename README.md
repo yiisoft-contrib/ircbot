@@ -13,7 +13,7 @@ An IRC bot to help with Yii 2.0 documentation.
 Unless you specify `--repl`, the bot tries to log on to Freenode with an identity
 read from the file `bot-ident.json`, which needs to look like this:
 
-    {"nick": "mybotnick", "password": "mybotpass"}
+    {"nick": "mybotnick", "pass": "mybotpass"}
 
 I'm using ES6 for the first time in this project and want to use strict mode throughout.
 I had to hack `node-irc` a little bit to get rid of the octal literals. There's a patch
