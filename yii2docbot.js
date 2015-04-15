@@ -1,123 +1,155 @@
 'use strict';
 
-var path = require('path'),
-    botPath = path.resolve('./bot.js'),
-    docbot = require(botPath),
+var docbot,
     options = {
+        botPath: './bot.js',
+        test: false,
+        repl: false,
+        types: undefined,
         channel: '#yii2docbot',
-        cli: process.argv.indexOf('--repl') > -1,
-        reload: process.argv.indexOf('--test') > -1,
-        typesFile: undefined
+        server: 'chat.freenode.net',
+        nick: 'yii2docbot',
+        pass: undefined
     },
-    client;
 
-for (let arg of process.argv) {
-    let matches = arg.match(/^--(types|channel)=(.+)$/);
-    if (matches) {
-        options[matches[1]] = matches[2];
-    }
-}
+    indexTypes = function (types) {
+        var index = {},
 
-if (options.typesFile !== undefined) {
-    let fs = require('fs'),
-        types = require(options.typesFile),
-        index = {},
+            /**
+             * Adds a key (if needed) and a leaf node to index, i.e. the search tree.
+             * @param {String} kind What kind of API item to add "t" = type, "m" = method, also "p" and "c"
+             * @param {Object} type The phpdoc object for the type to which the API element belongs
+             * @param {Object} item The phpdoc object for the API item to add
+             */
+            addNode = function (kind, type, item) {
+                var name = type.name,
+                    keyword = item.name.match(/\w+$/)[0].replace(/_/g, '').toLowerCase();
 
-        /**
-         * Adds a key (if needed) and a leaf node to index, i.e. the search tree.
-         * @param {String} kind What kind of API item to add "t" = type, "m" = method, also "p" and "c"
-         * @param {Object} type The phpdoc object for the type to which the API element belongs
-         * @param {Object} item The phpdoc object for the API item to add
-         */
-        addNode = function (kind, type, item) {
-            var name = type.name,
-                keyword = item.name.match(/\w+$/)[0].replace(/_/g, '').toLowerCase();
+                if (kind !== 't') {
+                    if (item.definedBy === type.name) {
+                        return;
+                    }
 
-            if (kind !== 't') {
-                if (item.definedBy === type.name) {
-                    return;
+                    name += '::' + item.name;
+                    if (kind === 'm') {
+                        name += '()';
+                    }
                 }
 
-                name += '::' + item.name;
-                if (kind === 'm') {
-                    name += '()';
+                if (!index.hasOwnProperty(keyword)) {
+                    index[keyword] = [];
+                }
+                index[keyword].push([name, item.shortDescription]);
+            };
+
+        // Iterate over the types in the JSON file.
+        Object.keys(types).map(function (name) {
+            var type = types[name],
+                kinds = ['methods', 'properties', 'constants'];
+
+            addNode('t', type, type);
+
+            // Look for the three kinds of member in each type object.
+            kinds.map(function (kind) {
+                if (type.hasOwnProperty(kind) && type[kind]) {
+                    // Iterate over each member adding it to the index.
+                    Object.keys(type[kind]).map(function (key) {
+                        addNode(kind[0], type, type[kind][key]);
+                    });
+                }
+            });
+        });
+
+        // Write the documentation index to a JSON file.
+        require('fs').writeFile('./docs.json', JSON.stringify(index, null, '  '));
+    },
+
+    replBot = function () {
+        require('repl').start({
+            "prompt": 'bot> ',
+            "eval": function (cmd, context, filename, callback) {
+                var answers;
+                try {
+                    answers = docbot().bot('nick', cmd);
+                } catch (err) {
+                    console.error('Error:', err);
+                }
+                if (answers) {
+                    callback(undefined, answers.join("  ...  "));
                 }
             }
+        });
+    },
 
-            if (!index.hasOwnProperty(keyword)) {
-                index[keyword] = [];
+    ircBot = function (options) {
+        var bot,
+            irc = require('irc'),
+            client,
+            clientIdent = {nick: undefined, pass: undefined};
+
+        try {
+            clientIdent = require('./bot-ident.json');
+        } catch (err) {}
+
+        client = new irc.Client(
+            options.server,
+            clientIdent.nick,
+            {
+                server: options.server,
+                nick: options.nick || clientIdent.nick,
+                channels: [options.channel],
+                userName: options.nick || clientIdent.nick,
+                password: options.pass || clientIdent.pass,
+                sasl: true,
+                port: 6697,
+                secure: true,
+                autoConnect: true
             }
-            index[keyword].push([name, item.shortDescription]);
-        };
-
-    for (let fqTypeName of Object.keys(types)) {
-        let type = types[fqTypeName];
-        addNode('t', type, type);
-        for (let kind of ['methods', 'properties', 'constants']) {
-            if (type.hasOwnProperty(kind) && type[kind]) {
-                for (let key of Object.keys(type[kind])) {
-                    addNode(kind[0], type, type[kind][key]);
-                }
-            }
-        }
-    }
-
-    // Write the documentation index to a JSON file.
-    fs.writeFile('./docs.json', JSON.stringify(index, null, '  '));
-}
-
-if (options.cli) {
-    let repl = require('repl');
-
-    client = repl.start({
-        prompt: 'docbot> ',
-        "eval": function (cmd, context, filename, callback) {
-            var error, answers;
-            try {
-                if (options.reload) {
-                    delete require.cache[botPath];
-                    docbot = require(botPath);
-                }
-                answers = docbot.bot('nick', cmd);
-            } catch (err) {
-                console.error('Error:', error);
-            }
+        );
+        client.addListener('error', function (message) {
+            console.log('error: ', message);
+        });
+        client.addListener('message' + options.channel, function (from, message) {
+            var answers;
+            console.log(from + ': ' + message);
+            answers = docbot().bot(from, message);
             if (answers) {
-                callback(error, answers.join("  ...  "));
+                answers.map(function (answer) {
+                    client.say(options.channel, answer);
+                });
             }
-        }
-    });
-} else {
-    let irc = require('irc'),
-        clientIdent = require('./bot-ident.json'),
-        clientOptions = {
-            server: 'chat.freenode.net',
-            nick: clientIdent.nick,
-            channels: [options.channel],
-            userName: clientIdent.nick,
-            password: clientIdent.password,
-            sasl: true,
-            port: 6697,
-            secure: true,
-            autoConnect: true
-        };
+        });
+    },
 
-    client = new irc.Client(clientOptions.server, clientOptions.nick, clientOptions);
-    client.addListener('error', function (message) {
-        console.log('error: ', message);
-    });
-    client.addListener('message' + options.channel, function (from, message) {
-        var answers;
-        console.log(from + ': ' + message);
-        if (options.reload) {
-            delete require.cache[botPath];
-            docbot = require(botPath);
+    optionsRe = new RegExp('^--(' + Object.keys(options).join('|') + ')(?:=(.+))?$');
+
+process.argv.map(function (arg) {
+    var matches = arg.match(optionsRe);
+    if (matches) {
+        options[matches[1]] = matches[2] || true;
+    }
+});
+options.botPath = require.resolve(options.botPath);
+
+// This sets up a function docbot() that returns the bot function, reloading the
+// bot module on each call if the --test option was set.
+docbot = (function (options) {
+    var bot;
+    return function () {
+        if (!bot || options.test) {
+            delete require.cache[options.botPath];
+            bot = require(options.botPath);
         }
-        answers = docbot.bot(from, message);
-        if (answers) {
-            for (let answer of answers) {
-                client.say(options.channel, answer);
-            }
-        }
-    });
+        return bot;
+    };
+}(options));
+
+if (options.types !== undefined) {
+    indexTypes(require(options.types));
+}
+
+if (options.repl) {
+    replBot();
+} else {
+    ircBot(options);
 }

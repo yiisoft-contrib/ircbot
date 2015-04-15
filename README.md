@@ -19,7 +19,6 @@ I'm using ES6 for the first time in this project and want to use strict mode thr
 I had to hack `node-irc` a little bit to get rid of the octal literals. There's a patch
 to show what I did. Sorry.
 
-<a name="use"></a>
 ### Using the bot
 
 The bot responds to bot commands and snoops messages, sometimes interjecting in
@@ -27,7 +26,7 @@ conversations.
 
 Commands start with ! at the beginning of an IRC message. There are at present two commands:
 
-- *!help*   Lists bot commands
+- *!help*
 - *!s keyword*   Search for API documentation matching the keyword
 
 The bot also snoops all IRC messages in the channel (probably even its own) looking for things
