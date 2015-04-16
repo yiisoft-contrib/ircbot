@@ -1,4 +1,5 @@
 /**
+ * Look at a IRC message and respond to it as appropriate.
  *
  * @param {String} from IRC nick of the message sender
  * @param {String} message IRC message to process
@@ -13,13 +14,24 @@ exports.bot = function (from, message) {
         answers = [],
         to,
 
+        /**
+         * A logger object with methods to add to a message line and flush the kine to console.
+         * Methods return the logger object to allow chaining.
+         */
         logger = (function () {
             var line = [];
             return {
+                /**
+                 * Add a string to the message line.
+                 * @param {String} word
+                 */
                 add: function (word) {
                     line.push(word);
                     return logger;
                 },
+                /**
+                 * Flush the accumulated message line to console.
+                 */
                 write: function () {
                     console.log(line.join(' '));
                     line = [];
@@ -145,13 +157,9 @@ exports.bot = function (from, message) {
                         pattern.unshift('\\\\');
                     }
 
-                    if (pattern.length > 0) {
-                        pattern = pattern.join('');
-                        logger.add('filter=/' + pattern + '/i');
-                        pattern = new RegExp(pattern, 'i');
-                    } else {
-                        pattern = undefined;
-                    }
+                    pattern = pattern.join('');
+                    logger.add('filter=/' + pattern + '/i');
+                    pattern = new RegExp(pattern, 'i');
                 } else {
                     logger.add('no-filter');
                 }
@@ -179,7 +187,7 @@ exports.bot = function (from, message) {
                     // The short description.
                     answer = items[0][1];
 
-                    // Form the URL.
+                    // Form the doc URL to include in the answer.
                     m = items[0][0].match(/^([\w\\]+)(?:::([\w\$\(\)]+))?$/);
                     if (m) {
                         url = m[1].replace(/\\/g, '-').toLowerCase();
@@ -189,7 +197,7 @@ exports.bot = function (from, message) {
                         }
                     }
 
-                    // Add the fq-item name if it's not already in teh short description.
+                    // Add the fq-item name if it's not already in the short description.
                     if (!answer.match(new RegExp('^' + RegExp.escape(items[0][0]) + ' '))) {
                         answer = items[0][0] + ' ' + answer;
                     }

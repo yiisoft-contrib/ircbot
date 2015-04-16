@@ -12,6 +12,15 @@ var docbot,
         pass: undefined
     },
 
+    /**
+     * Reads JSON output from the yii2-apidoc docuemntation gernator, processes it into a
+     * search index and writes that to docs.json in the CWD.
+     *
+     * @see http://www.yiiframework.com/doc-2.0/ext-apidoc-index.html
+     * @see https://github.com/tom--/yii2-apidoc
+     *
+     * @param {String} types File path to the JSON output from yii2-apidoc.
+     */
     indexTypes = function (types) {
         var index = {},
 
@@ -64,6 +73,9 @@ var docbot,
         require('fs').writeFile('./docs.json', JSON.stringify(index, null, '  '));
     },
 
+    /**
+     * Start a node REPL using our own eval function that calls the Yii 2 doc bot.
+     */
     replBot = function () {
         require('repl').start({
             "prompt": 'bot> ',
@@ -81,6 +93,11 @@ var docbot,
         });
     },
 
+    /**
+     * Start an IRC client and add a listener that calls the Yii 2 doc bot.
+     *
+     * @param {Object} options The main script options object.
+     */
     ircBot = function (options) {
         var bot,
             irc = require('irc'),
@@ -121,6 +138,8 @@ var docbot,
         });
     },
 
+    // I would prefer this to be a const directly before the argv map but my aincient
+    // JSLint can't deal with it.
     optionsRe = new RegExp('^--(' + Object.keys(options).join('|') + ')(?:=(.+))?$');
 
 process.argv.map(function (arg) {
@@ -129,10 +148,14 @@ process.argv.map(function (arg) {
         options[matches[1]] = matches[2] || true;
     }
 });
+
+// The supplied path input can be relative but we need the absolute path because that's
+// what the require cache uses for its key, which we need to delete the cache entry if
+// --test was specified.
 options.botPath = require.resolve(options.botPath);
 
-// This sets up a function docbot() that returns the bot function, reloading the
-// bot module on each call if the --test option was set.
+// Create a function docbot() that returns the bot function, reloading the bot module
+// eact time it is called if the --test option was set.
 docbot = (function (options) {
     var bot;
     return function () {
@@ -144,7 +167,8 @@ docbot = (function (options) {
     };
 }(options));
 
-if (options.types !== undefined) {
+// Update the search index if requested.
+if (options.types) {
     indexTypes(require(options.types));
 }
 

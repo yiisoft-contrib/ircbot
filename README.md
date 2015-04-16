@@ -38,7 +38,7 @@ Then the bot interjects with:
 
 > yii\db\BaseActiveRecord::hasOne() Declares a `has-one` relation. http://www.yiiframework.com/doc-2.0/yii-db-baseactiverecord.html#hasOne()-detail
 
-The bot recognized that "hasone()" might be a method in the Yii and ran an API search with
+The bot recognized that "hasone()" might be a method in Yii and ran an API search with
 keyword *hasone()*. A number of patterns trigger the search.
 
 ### API search
