@@ -93,6 +93,7 @@ var docbot,
         });
     },
 
+
     /**
      * Start an IRC client and add a listener that calls the Yii 2 doc bot.
      *
@@ -101,7 +102,19 @@ var docbot,
     ircBot = function (options) {
         var irc = require('irc'),
             client,
-            clientIdent = {nick: undefined, pass: undefined};
+            clientIdent = {nick: undefined, pass: undefined},
+            reply = function (to) {
+                return function (from, message) {
+                    var answers;
+                    console.log(from + ': ' + message);
+                    answers = docbot().bot(from, message);
+                    if (answers) {
+                        answers.map(function (answer) {
+                            client.say(to || from, answer);
+                        });
+                    }
+                };
+            };
 
         try {
             clientIdent = require('./bot-ident.json');
@@ -125,16 +138,8 @@ var docbot,
         client.addListener('error', function (message) {
             console.log('error: ', message);
         });
-        client.addListener('message' + options.channel, function (from, message) {
-            var answers;
-            console.log(from + ': ' + message);
-            answers = docbot().bot(from, message);
-            if (answers) {
-                answers.map(function (answer) {
-                    client.say(options.channel, answer);
-                });
-            }
-        });
+        client.addListener('message' + options.channel, reply(options.channel));
+        client.addListener('pm', reply());
     },
 
     // I would prefer this to be a const directly before the argv map but my aincient
