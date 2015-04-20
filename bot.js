@@ -209,7 +209,7 @@ exports.bot = function (from, message) {
                             if (nameMatches[2]) {
                                 url += '#' + nameMatches[2] + '-detail';
                             }
-                            answer += url;
+                            answer += ' ' + url;
                         }
                     }(items[0][0], items[0][1]));
                 } else {
@@ -222,7 +222,10 @@ exports.bot = function (from, message) {
                             answer += '… ' + items.length + ' more';
                             return;
                         }
-                        answer += item + ', ';
+                        answer += item;
+                        if (items.length > 1) {
+                            answer += ', ';
+                        }
 
                         // tail calls are optimized in ES6!
                         listThem(items);
@@ -294,8 +297,8 @@ exports.bot = function (from, message) {
             // Methods end in dog's bollox ()
             /^([\w:#\.\\]*\w\(\))$/,
 
-            // Properties have a $ before the last string of word chars
-            /^([\w:#\.\\]*\$\w+)$/,
+            // Properties have a $ before the last string of word chars and a separator
+            /^([\w\\]*(?:::|\.|#)\$\w+)$/,
 
             // Class name ending with ::
             /^([\w\\]*\w::)$/,
