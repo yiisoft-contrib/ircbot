@@ -195,7 +195,7 @@ exports.bot = function (from, message) {
                         // Start with the item's fq-name.
                         answer += name + ' ';
 
-                        // Add the description but remove its first word if its a repeat of name.
+                        // Add the description, removing its first word if it repeats the name.
                         nameMatches = name.match(/\$?\w+(?:\(\))?$/);
                         descriptionMatches = nameMatches &&
                             description.match(new RegExp('^(?:' + RegExp.escape(nameMatches[0]) + ') (.+)$'));
