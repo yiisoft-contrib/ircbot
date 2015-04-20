@@ -11,8 +11,13 @@ exports.bot = function (from, message) {
     var docs = require('./docs.json'),
         maxLength = 420,
         words = [],
+        num,
+        answer,
         answers = [],
         to,
+        regex,
+        matches,
+        save,
 
         /**
          * A logger object with methods to add to a message line and flush the kine to console.
@@ -64,7 +69,8 @@ exports.bot = function (from, message) {
                     m,
                     isConst,
                     pattern,
-                    items = [];
+                    items = [],
+                    listThem;
 
                 if (!args || args.length === 0) {
                     // Cancel addressing the reply to a specific nick and send to sender instead.
@@ -172,51 +178,52 @@ exports.bot = function (from, message) {
                 });
 
                 // How many items matched after filtering?
-                let num = items.length;
+                num = items.length;
                 if (num === 0) {
                     logger.add('Nfilter=0').write();
                     return;
                 }
 
                 // From here on we will certainly return an answer of some kind.
-                let answer = '';
+                answer = '';
                 if (num === 1) {
-                    let url;
                     // One answer. The bot can reply the short description and doc URL.
 
-                    // The short description.
-                    answer = items[0][1];
+                    (function (name, description) {
+                        var nameMatches, descriptionMatches, url;
 
-                    // Form the doc URL to include in the answer.
-                    m = items[0][0].match(/^([\w\\]+)(?:::([\w\$\(\)]+))?$/);
-                    if (m) {
-                        url = m[1].replace(/\\/g, '-').toLowerCase();
-                        url = 'http://www.yiiframework.com/doc-2.0/' + url + '.html';
-                        if (m[2]) {
-                            url += '#' + m[2] + '-detail';
+                        // Start with the item's fq-name.
+                        answer += name + ' ';
+
+                        // Add the description but remove its first word if its a repeat of name.
+                        nameMatches = name.match(/\$?\w+(?:\(\))?$/);
+                        descriptionMatches = nameMatches &&
+                            description.match(new RegExp('^(?:' + RegExp.escape(nameMatches[0]) + ') (.+)$'));
+                        answer += descriptionMatches ? descriptionMatches[1] : description;
+
+                        // Form the doc URL to include in the answer.
+                        nameMatches = name.match(/^([\w\\]+)(?:::([\w\$\(\)]+))?$/);
+                        if (nameMatches) {
+                            url = nameMatches[1].replace(/\\/g, '-').toLowerCase();
+                            url = 'http://www.yiiframework.com/doc-2.0/' + url + '.html';
+                            if (nameMatches[2]) {
+                                url += '#' + nameMatches[2] + '-detail';
+                            }
+                            answer += url;
                         }
-                    }
-
-                    // Add the fq-item name if it's not already in the short description.
-                    if (!answer.match(new RegExp('^' + RegExp.escape(items[0][0]) + ' '))) {
-                        answer = items[0][0] + ' ' + answer;
-                    }
-
-                    // Add the URL.
-                    if (url) {
-                        answer += ' ' + url;
-                    }
+                    }(items[0][0], items[0][1]));
                 } else {
-                    const listThem = function (items) {
-                        answer += items.shift()[0];
+                    listThem = function (items) {
+                        var item = items.shift()[0];
                         if (items.length === 0) {
                             return;
                         }
                         if (answer.length > maxLength) {
-                            answer += ' & ' + items.length + ' more';
+                            answer += '… ' + items.length + ' more';
                             return;
                         }
-                        answer += ', ';
+                        answer += item + ', ';
+
                         // tail calls are optimized in ES6!
                         listThem(items);
                     };
@@ -237,8 +244,8 @@ exports.bot = function (from, message) {
         return text.replace(re, '\\$1');
     };
 
-    let regex = new RegExp('(?:\\S+)+', 'g'),
-        matches = regex.exec(message);
+    regex = new RegExp('(?:\\S+)+', 'g');
+    matches = regex.exec(message);
     while (matches) {
         words.push(matches[0]);
         matches = regex.exec(message);
@@ -268,12 +275,9 @@ exports.bot = function (from, message) {
 
     matches = words[0].match(/^!([#-~]+)$/);
     if (matches) {
-        let answer,
-            cmd = matches[1];
-
-        if (commands.hasOwnProperty(cmd)) {
-            let save = words.shift();
-            answer = commands[cmd].call(undefined, words);
+        if (commands.hasOwnProperty(matches[1])) {
+            save = words.shift();
+            answer = commands[matches[1]].call(undefined, words);
             if (answer) {
                 answers = [answer];
             } else {
@@ -284,19 +288,36 @@ exports.bot = function (from, message) {
 
     words.map(function (word) {
         [
+            // Trigger chars at the start of a keyword. Don't capture the trigger
             /^[!`·˙]([\w:#\.\\\(\)\$]+)$/,
-            /^([\w:#\.\\]+\(\))$/,
+
+            // Methods end in dog's bollox ()
+            /^([\w:#\.\\]*\w\(\))$/,
+
+            // Properties have a $ before the last string of word chars
             /^([\w:#\.\\]*\$\w+)$/,
-            /^([\w\\]*(?:::|\.|#)[\w]*)$/,
+
+            // Class name ending with ::
+            /^([\w\\]*\w::)$/,
+
+            // Member name starting with ::
+            /^(::\w\w*)$/,
+
+            // Member of a given class with :: . or # as separator
+            /^([\w\\]*\w(?:::|\.|#)[\w]+)$/,
+
+            // Class name with namespace
             /^([\w\\]*\\[\w\\]*)$/
-        ].map(function (re) {
+        ].every(function (re) {
             matches = word.match(re);
             if (matches) {
-                let answer = commands.s([matches[1]]);
+                answer = commands.s([matches[1]]);
                 if (answer) {
                     answers.push(answer);
+                    return false;
                 }
             }
+            return true;
         });
     });
 

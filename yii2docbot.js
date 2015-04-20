@@ -99,14 +99,13 @@ var docbot,
      * @param {Object} options The main script options object.
      */
     ircBot = function (options) {
-        var bot,
-            irc = require('irc'),
+        var irc = require('irc'),
             client,
             clientIdent = {nick: undefined, pass: undefined};
 
         try {
             clientIdent = require('./bot-ident.json');
-        } catch (err) {}
+        } catch (ignore) {}
 
         client = new irc.Client(
             options.server,
