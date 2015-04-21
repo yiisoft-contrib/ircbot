@@ -2,18 +2,26 @@
 
 An IRC bot to help with Yii 2.0 documentation.
 
-    yii2docbot [--repl] [--test] [--types=file] [--channel=#foo]
+    yii2docbot [--repl] [--test] [--server=<server>] [--channel=<channel>]
+          [--nick=<nickname>] [--pass=<password>] [--types=<path>] [--botPath=<path>]
 
       --repl        Use a REPL instead of an IRC client
       --test        Reload bot.js module before evaluating each input
-      --types       Load a types doc file, which is the 'types.json' file output by
-                    `apidoc api --template=json` in https://github.com/tom--/yii2-apidoc
-      --channel     Join the given channel instead of the default #yii2docbot
+      --server      Connect to server <server> instead of chat.freenode.net
+      --channel     Join channel <channel> instead of #yii2docbot
+      --nick        Use nick <nickname> instead of "yii2docbot"
+      --pass        Use password <password>
+      --types       Load a "types" JSON documentation file from <path>. The file should be
+                    the 'types.json' file output by `apidoc api --template=json` in 
+                    https://github.com/tom--/yii2-apidoc
+      --botPath     Use the bot module at <path> instead of at "./bot.js"
 
-Unless you specify `--repl`, the bot tries to log on to Freenode with an identity
-read from the file `bot-ident.json`, which needs to look like this:
+Unless you specify `--repl`, the bot tries to log on to IRC. If there is a file named
+`bot-ident.json` with nick and/or pass something like this:
 
     {"nick": "mybotnick", "pass": "mybotpass"}
+
+then these values override defaults or command-line options.
 
 I'm using ES6 for the first time in this project and want to use strict mode throughout.
 I had to hack `node-irc` a little bit to get rid of the octal literals. There's a patch
@@ -46,7 +54,7 @@ keyword *hasone()*. A number of patterns trigger the search.
 The bot runs an API search in response to:
 
 - The *!s keyword* bot command
-- A keyword pattern that it recognizes including *name()*, *$name*, *NAME*, *::name*, *name::*, *\name*, *name\name*, some of which can be combined
+- A keyword pattern that it recognizes including *name()*, *.$name*, *::$name*, *NAME*, *::name*, *name::*, *\name*, *name\name*, some of which can be combined
 - A keyword trigger character (exclamation point or backtick) at the start of a word, e.g.
 "Use a \`query object"
 

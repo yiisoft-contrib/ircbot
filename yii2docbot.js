@@ -3,14 +3,14 @@
 var docbot,
     optionsRe,
     options = {
-        botPath: './bot.js',
-        test: false,
         repl: false,
-        types: undefined,
-        channel: '#yii2docbot',
+        test: false,
         server: 'chat.freenode.net',
+        channel: '#yii2docbot',
         nick: 'yii2docbot',
-        pass: undefined
+        pass: undefined,
+        types: undefined,
+        botPath: './bot.js'
     },
 
     /**
