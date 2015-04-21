@@ -36,7 +36,7 @@ var docbot,
                     keyword = item.name.match(/\w+$/)[0].replace(/_/g, '').toLowerCase();
 
                 if (kind !== 't') {
-                    if (item.definedBy === type.name) {
+                    if (item.definedBy !== type.name) {
                         return;
                     }
 
