@@ -120,16 +120,18 @@ var docbot,
         try {
             clientIdent = require('./bot-ident.json');
         } catch (ignore) {}
+        clientIdent.nick = clientIdent.nick || options.nick;
+        clientIdent.pass = clientIdent.pass || options.pass;
 
         client = new irc.Client(
             options.server,
             clientIdent.nick,
             {
                 server: options.server,
-                nick: options.nick || clientIdent.nick,
+                nick: clientIdent.nick,
                 channels: [options.channel],
-                userName: options.nick || clientIdent.nick,
-                password: options.pass || clientIdent.pass,
+                userName: clientIdent.nick,
+                password: clientIdent.pass,
                 sasl: true,
                 port: 6697,
                 secure: true,
