@@ -26,12 +26,12 @@ var docbot,
         var index = {},
 
             /**
-             * Adds a key (if needed) and a leaf node to index, i.e. the search tree.
+             * Adds a leaf to index (i.e. the search tree) and (if needed) a key node.
              * @param {String} kind What kind of API item to add "t" = type, "m" = method, also "p" and "c"
              * @param {Object} type The phpdoc object for the type to which the API element belongs
              * @param {Object} item The phpdoc object for the API item to add
              */
-            addNode = function (kind, type, item) {
+            addLeaf = function (kind, type, item) {
                 var name = type.name,
                     keyword = item.name.match(/\w+$/)[0].replace(/_/g, '').toLowerCase();
 
@@ -57,14 +57,14 @@ var docbot,
             var type = types[name],
                 kinds = ['methods', 'properties', 'constants'];
 
-            addNode('t', type, type);
+            addLeaf('t', type, type);
 
             // Look for the three kinds of member in each type object.
             kinds.map(function (kind) {
                 if (type.hasOwnProperty(kind) && type[kind]) {
                     // Iterate over each member adding it to the index.
                     Object.keys(type[kind]).map(function (key) {
-                        addNode(kind[0], type, type[kind][key]);
+                        addLeaf(kind[0], type, type[kind][key]);
                     });
                 }
             });
