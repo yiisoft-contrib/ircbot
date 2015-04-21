@@ -1,4 +1,4 @@
 node_modules
 /.idea
-/bot-ident.json
+/bot-ident*.json
 /docs.json
