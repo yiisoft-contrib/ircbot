@@ -1,6 +1,7 @@
 'use strict';
 
 var docbot,
+    optionsRe,
     options = {
         botPath: './bot.js',
         test: false,
@@ -135,17 +136,16 @@ var docbot,
                 autoConnect: true
             }
         );
-        client.addListener('error', function (message) {
-            console.log('error: ', message);
-        });
-        client.addListener('message' + options.channel, reply(options.channel));
-        client.addListener('pm', reply());
-    },
+        client
+            .addListener('error', function (message) {
+                console.log('error: ', message);
+            })
+            .addListener('message' + options.channel, reply(options.channel))
+            .addListener('pm', reply());
+    };
 
-    // I would prefer this to be a const directly before the argv map but my aincient
-    // JSLint can't deal with it.
-    optionsRe = new RegExp('^--(' + Object.keys(options).join('|') + ')(?:=(.+))?$');
-
+// Note: not escaping the option names.
+optionsRe = new RegExp('^--(' + Object.keys(options).join('|') + ')(?:=(.+))?$');
 process.argv.map(function (arg) {
     var matches = arg.match(optionsRe);
     if (matches) {
