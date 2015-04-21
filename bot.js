@@ -9,7 +9,7 @@ exports.bot = function (from, message) {
     'use strict';
 
     var docs = require('./docs.json'),
-        maxLength = 420,
+        maxLength = 400,
         words = [],
         num,
         answer,
