@@ -2,6 +2,7 @@
 
 var docbot,
     optionsRe,
+    config = {},
     options = {
         repl: false,
         test: false,
@@ -9,6 +10,7 @@ var docbot,
         channel: '#yii2docbot',
         nick: 'yii2docbot',
         pass: undefined,
+        realName: 'Documentation bot for Yii 2',
         types: undefined,
         botPath: './bot.js'
     },
@@ -23,33 +25,67 @@ var docbot,
      * @param {String} types File path to the JSON output from yii2-apidoc.
      */
     indexTypes = function (types) {
+        /**
+         * The index is an object of search keys, each mapping to an array of one or more leaves.
+         *
+         * The search key is the type name if the API item is a type (i.e. class, trait or interface)
+         * or the member name of the API item is a type member (i.e. property, method or constant).
+         * The key is stripped of special chars and underscores and in lower case.
+         *
+         * Each leaf is an object with properties:
+         *   - name: The item's fully-qualified name, which depends on the kind of API item:
+         *       - "name\space\TypeName" for a class, trait or interface
+         *       - "name\space\TypeName::$property" for a property (note the $ after the ::)
+         *       - "name\space\TypeName::method()" for a method (note the dog's bollox at end)
+         *       - "name\space\TypeName::CONST" for a constant (no special chars, name may have underscores)
+         *   - desc: The short description from the PHP docbock
+         * and if the item is a member:
+         *   - definedBy: The fully-qualified name of the class that defines the item
+         *
+         * Thus, for example, one of the entries in index might look like:
+         {
+             ...
+             "query": [
+                 {"name": "yii\\db\\Query",
+                  "desc": "Query represents a SELECT SQL statement in a way that is independent of DBMS."},
+                 {"name": "yii\\data\\ActiveDataProvider::$query",
+                  "desc": "The query that is used to fetch data models and [[totalCount]]\nif it is not explicitly set.",
+                  "definedBy": "yii\\data\\ActiveDataProvider"},
+                 {"name": "yii\\db\\Command::query()",
+                  "desc": "Executes the SQL statement and returns query result.",
+                  "definedBy": "yii\\db\\Command"}
+             ],
+             ...
+         }
+         *
+         */
         var index = {},
 
             /**
              * Adds a leaf to index (i.e. the search tree) and (if needed) a key node.
              * @param {String} kind What kind of API item to add "t" = type, "m" = method, also "p" and "c"
-             * @param {Object} type The phpdoc object for the type to which the API element belongs
+             * @param {Object} typeName Fully-qualified name of the type the item appears in
              * @param {Object} item The phpdoc object for the API item to add
              */
-            addLeaf = function (kind, type, item) {
-                var name = type.name,
-                    keyword = item.name.match(/\w+$/)[0].replace(/_/g, '').toLowerCase();
+            addLeaf = function (kind, typeName, item) {
+                var keyword = item.name.match(/\w+$/)[0].replace(/_/g, '').toLowerCase(),
+                    leaf = {
+                        name: typeName,
+                        desc: item.shortDescription
+                    };
 
                 if (kind !== 't') {
-                    if (item.definedBy !== type.name) {
-                        return;
-                    }
-
-                    name += '::' + item.name;
+                    leaf.name += '::' + item.name;
                     if (kind === 'm') {
-                        name += '()';
+                        leaf.name += '()';
                     }
+                    leaf.definedBy = item.definedBy;
                 }
 
                 if (!index.hasOwnProperty(keyword)) {
                     index[keyword] = [];
                 }
-                index[keyword].push([name, item.shortDescription]);
+                index[keyword].push(leaf);
             };
 
         // Iterate over the types in the JSON file.
@@ -57,14 +93,14 @@ var docbot,
             var type = types[name],
                 kinds = ['methods', 'properties', 'constants'];
 
-            addLeaf('t', type, type);
+            addLeaf('t', type.name, type);
 
             // Look for the three kinds of member in each type object.
             kinds.map(function (kind) {
                 if (type.hasOwnProperty(kind) && type[kind]) {
                     // Iterate over each member adding it to the index.
                     Object.keys(type[kind]).map(function (key) {
-                        addLeaf(kind[0], type, type[kind][key]);
+                        addLeaf(kind[0], type.name, type[kind][key]);
                     });
                 }
             });
@@ -103,35 +139,34 @@ var docbot,
     ircBot = function (options) {
         var irc = require('irc'),
             client,
-            clientIdent = {nick: undefined, pass: undefined},
             reply = function (to) {
                 return function (from, message) {
                     var answers;
                     console.log(from + ': ' + message);
                     answers = docbot().bot(from, message);
-                    if (answers) {
+                    if (answers && answers.length > 0) {
                         answers.map(function (answer) {
                             client.say(to || from, answer);
+                            console.log(options.nick + ': ' + answer);
                         });
                     }
                 };
             };
 
-        try {
-            clientIdent = require('./bot-ident.json');
-        } catch (ignore) {}
-        clientIdent.nick = clientIdent.nick || options.nick;
-        clientIdent.pass = clientIdent.pass || options.pass;
+        if (!options.pass) {
+            throw "Can't connect to IRC without a password, use --pass option.";
+        }
 
         client = new irc.Client(
             options.server,
-            clientIdent.nick,
+            options.nick,
             {
                 server: options.server,
-                nick: clientIdent.nick,
+                nick: options.nick,
                 channels: [options.channel],
-                userName: clientIdent.nick,
-                password: clientIdent.pass,
+                userName: options.nick,
+                password: options.pass,
+                realName: options.realName,
                 sasl: true,
                 port: 6697,
                 secure: true,
@@ -145,6 +180,20 @@ var docbot,
             .addListener('message' + options.channel, reply(options.channel))
             .addListener('pm', reply());
     };
+
+process.argv.some(function (arg) {
+    var matches = arg.match(/^--config=(.+)$/);
+    if (matches) {
+        config = require(matches[1]);
+        return true;
+    }
+});
+
+Object.keys(config).map(function (key) {
+    if (options.hasOwnProperty(key)) {
+        options[key] = config[key];
+    }
+});
 
 // Note: not escaping the option names.
 optionsRe = new RegExp('^--(' + Object.keys(options).join('|') + ')(?:=(.+))?$');
