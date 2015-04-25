@@ -52,8 +52,16 @@ exports.bot = function (from, message) {
          * scope) if it needs to prevent other commands (e.g. snooping) from inspecting them.
          */
         commands = {
+            ray: function () {
+                return 'Agent Ray Gillette, expert in Yii and defusing bombs: https://youtu.be/_K_WmV50e7c';
+            },
+
             help: function () {
                 return 'https://bitbucket.org/thefsb/yii2docbot/src#markdown-header-using-the-bot';
+            },
+
+            gillette: function () {
+                return 'See !Ray';
             },
 
             /**
@@ -172,7 +180,8 @@ exports.bot = function (from, message) {
 
                 // Choose the items that match the pattern, if there is one, or all otherwise.
                 docs[docKey].map(function (item) {
-                    if (!pattern || item[0].match(pattern)) {
+                    if (!pattern ||
+                            (item.name.match(pattern) && (m[2] || (item.definedBy && item.name.startsWith(item.definedBy))))) {
                         items.push(item);
                     }
                 });
@@ -187,34 +196,34 @@ exports.bot = function (from, message) {
                 // From here on we will certainly return an answer of some kind.
                 answer = '';
                 if (num === 1) {
-                    // One answer. The bot can reply the short description and doc URL.
-
-                    (function (name, description) {
+                    (function (item) {
                         var nameMatches, descriptionMatches, url;
 
                         // Start with the item's fq-name.
-                        answer += name + ' ';
+                        answer += item.name + ' ';
 
                         // Add the description, removing its first word if it repeats the name.
-                        nameMatches = name.match(/\$?\w+(?:\(\))?$/);
+                        nameMatches = item.name.match(/\$?\w+(?:\(\))?$/);
                         descriptionMatches = nameMatches &&
-                            description.match(new RegExp('^(?:' + RegExp.escape(nameMatches[0]) + ') (.+)$'));
-                        answer += descriptionMatches ? descriptionMatches[1] : description;
+                            item.desc.match(new RegExp('^(?:' + RegExp.escape(nameMatches[0]) + ') (.+)$'));
+                        answer += descriptionMatches ? descriptionMatches[1] : item.desc;
+                        // Sometimes there's a newline in the description.
+                        answer = answer.replace(/\s+/g, ' ');
 
                         // Form the doc URL to include in the answer.
-                        nameMatches = name.match(/^([\w\\]+)(?:::([\w\$\(\)]+))?$/);
+                        nameMatches = (item.definedBy || item.name).match(/^[\w\\]+/);
                         if (nameMatches) {
-                            url = nameMatches[1].replace(/\\/g, '-').toLowerCase();
+                            url = nameMatches[0].replace(/\\/g, '-').toLowerCase();
                             url = 'http://www.yiiframework.com/doc-2.0/' + url + '.html';
-                            if (nameMatches[2]) {
-                                url += '#' + nameMatches[2] + '-detail';
+                            nameMatches = item.name.match(/(?:::([\w\$\(\)]+))?$/);
+                            if (nameMatches) {
+                                url += '#' + nameMatches[1] + '-detail';
                             }
                             answer += ' ' + url;
                         }
-                    }(items[0][0], items[0][1]));
+                    }(items[0]));
                 } else {
                     listThem = function (items) {
-                        var item = items.shift()[0];
                         if (items.length === 0) {
                             return;
                         }
@@ -222,10 +231,7 @@ exports.bot = function (from, message) {
                             answer += '… ' + items.length + ' more';
                             return;
                         }
-                        answer += item;
-                        if (items.length > 1) {
-                            answer += ', ';
-                        }
+                        answer += items.shift().name + (items.length ? ', ' : '');
 
                         // tail calls are optimized in ES6!
                         listThem(items);
@@ -278,9 +284,9 @@ exports.bot = function (from, message) {
 
     matches = words[0].match(/^!([#-~]+)$/);
     if (matches) {
-        if (commands.hasOwnProperty(matches[1])) {
+        if (commands.hasOwnProperty(matches[1].toLowerCase())) {
             save = words.shift();
-            answer = commands[matches[1]].call(undefined, words);
+            answer = commands[matches[1].toLowerCase()].call(undefined, words);
             if (answer) {
                 answers = [answer];
             } else {
