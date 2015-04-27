@@ -215,7 +215,7 @@ exports.bot = function (from, message) {
                         if (nameMatches) {
                             url = nameMatches[0].replace(/\\/g, '-').toLowerCase();
                             url = 'http://www.yiiframework.com/doc-2.0/' + url + '.html';
-                            nameMatches = item.name.match(/(?:::([\w\$\(\)]+))?$/);
+                            nameMatches = item.name.match(/(?:::([\w\$\(\)]+))$/);
                             if (nameMatches) {
                                 url += '#' + nameMatches[1] + '-detail';
                             }
