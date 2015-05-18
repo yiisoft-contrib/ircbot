@@ -1,3 +1,4 @@
+'use strict';
 /**
  * Look at a IRC message and respond to it as appropriate.
  *
@@ -6,9 +7,9 @@
  * @returns {String[]|undefined} One or more bot response messages
  */
 exports.bot = function (from, message) {
-    'use strict';
 
     var docs = require('./docs.json'),
+        state = require('./botState'),
         maxLength = 400,
         words = [],
         num,
@@ -295,6 +296,8 @@ exports.bot = function (from, message) {
         }
     }
 
+    // snoop
+    state.recentSnoops.flush();
     words.map(function (word) {
         [
             // Trigger chars at the start of a keyword. Don't capture the trigger
@@ -321,7 +324,8 @@ exports.bot = function (from, message) {
             matches = word.match(re);
             if (matches) {
                 answer = commands.s([matches[1]]);
-                if (answer) {
+                if (answer && !state.recentSnoops.isRecent(matches[1])) {
+                    state.recentSnoops.add(matches[1]);
                     answers.push(answer);
                     return false;
                 }
