@@ -119,6 +119,7 @@ var docbot,
             "eval": function (cmd, context, filename, callback) {
                 var answers;
                 try {
+                    console.log(Date.millinow() + "\n");
                     answers = docbot().bot('nick', cmd);
                 } catch (err) {
                     console.error('Error:', err);
@@ -142,12 +143,11 @@ var docbot,
             reply = function (to) {
                 return function (from, message) {
                     var answers;
-                    console.log(from + ': ' + message);
                     answers = docbot().bot(from, message);
                     if (answers && answers.length > 0) {
                         answers.map(function (answer) {
                             client.say(to || from, answer);
-                            console.log(options.nick + ': ' + answer);
+                            console.log(Date.millinow() + ' ' + options.nick + ': ' + answer);
                         });
                     }
                 };
@@ -178,8 +178,27 @@ var docbot,
                 console.log('error: ', message);
             })
             .addListener('message' + options.channel, reply(options.channel))
+            .addListener('message' + options.channel, function (from, message) {
+                console.log(Date.millinow() + ' ' + from + ': ' + message);
+            })
             .addListener('pm', reply());
     };
+
+Date.millinow = function () {
+    var now = new Date();
+    function pad(number) {
+        if (number < 10) {
+            return '0' + number;
+        }
+        return number;
+    }
+    return pad(now.getUTCHours()) +
+        ':' + pad(now.getUTCMinutes()) +
+        ':' + pad(now.getUTCSeconds()) +
+        '.' +
+        (now.getUTCMilliseconds() / 1000).toFixed(3).slice(2, 5) +
+        'Z';
+};
 
 process.argv.some(function (arg) {
     var matches = arg.match(/^--config=(.+)$/);
