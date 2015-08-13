@@ -21,7 +21,7 @@ exports.bot = function (from, message) {
         save,
 
         /**
-         * A logger object with methods to add to a message line and flush the kine to console.
+         * A logger object with methods to add to a message line and flush the line to console.
          * Methods return the logger object to allow chaining.
          */
         logger = (function () {
@@ -205,7 +205,7 @@ exports.bot = function (from, message) {
 
                         // Add the description, removing its first word if it repeats the name.
                         nameMatches = item.name.match(/\$?\w+(?:\(\))?$/);
-                        descriptionMatches = nameMatches &&
+                        descriptionMatches = nameMatches && item.desc &&
                             item.desc.match(new RegExp('^(?:' + RegExp.escape(nameMatches[0]) + ') (.+)$'));
                         answer += descriptionMatches ? descriptionMatches[1] : item.desc;
                         // Sometimes there's a newline in the description.
@@ -295,6 +295,9 @@ exports.bot = function (from, message) {
             }
         }
     }
+
+    // this would be a good place to trim unwanted punctuation from words so that,
+    // for example, the bot snoops this: "... use Yii::t(), not ..."
 
     // snoop
     state.recentSnoops.flush();
