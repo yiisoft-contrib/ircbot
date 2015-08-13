@@ -2,43 +2,41 @@
 
 An IRC bot to help with Yii 2.0 documentation.
 
-    yii2docbot [--repl] [--test] [--server=<server>] [--channel=<channel>]
-          [--nick=<nickname>] [--pass=<password>] [--types=<path>] [--botPath=<path>]
+    yii2docbot [--types=<path>] [--repl] [--test]
+        [--server=<server>] [--channel=<channel>] [--nick=<nickname>] [--pass=<password>]
 
+      --types       Load a "types" JSON documentation file from <path>. The file should be
+                    the 'types.json' file output by `apidoc api --template=json`
       --repl        Use a REPL instead of an IRC client
       --test        Reload bot.js module before evaluating each input
-      --server      Connect to server <server> instead of chat.freenode.net
+      --server      Connect to IRC server <server> instead of chat.freenode.net
       --channel     Join channel <channel> instead of #yii2docbot
-      --nick        Use nick <nickname> instead of "yii2docbot"
+      --nick        Use nick <nickname> instead of yii2docbot
       --pass        Use password <password>
-      --types       Load a "types" JSON documentation file from <path>. The file should be
-                    the 'types.json' file output by `apidoc api --template=json` in 
-                    https://github.com/tom--/yii2-apidoc
-      --botPath     Use the bot module at <path> instead of at "./bot.js"
 
-Unless you specify `--repl`, the bot tries to log on to IRC. If there is a file named
-`bot-ident.json` with nick and/or pass something like this:
+Unless you specify `--repl`, the bot tries to log on to IRC.
 
-    {"nick": "mybotnick", "pass": "mybotpass"}
+Default options’ values are at the top of the yii2docbot.js script. The options object
+is first extended by the file botrc.json, if it exists, and then by command line options.
+botrc.json should contain a single JSON object of option-value pairs.
 
-then these values override defaults or command-line options.
-
-I'm using ES6 for the first time in this project and want to use strict mode throughout.
-I had to hack `node-irc` a little bit to get rid of the octal literals. There's a patch
-to show what I did. Sorry.
+The JavaScript is ES6 (Harmony) and I use strict mode in the .js files. The `node-irc`
+dependency uses octal literals in a couple of places which are not allowed in strict ES6.
+My [PR](https://github.com/martynsmith/node-irc/pull/368) to correct these awaits
+attention so for now the package.json specifies my fork.
 
 ### Using the bot
 
 The bot responds to bot commands and snoops messages, sometimes interjecting in
 conversations.
 
-Commands start with ! at the beginning of an IRC message. There are at present two commands:
+Commands start with ! at the beginning of an IRC message. Commands include:
 
 - *!help*
 - *!s keyword*   Search for API documentation matching the keyword
 
-The bot also snoops all IRC messages in the channel (probably even its own) looking for things
-to run API searches on. For example, if someone sends the message
+The bot also snoops all IRC messages in the channel (except its own) and PMs looking
+for things to run API searches on. For example, if someone sends the message
 
 > Your getAuthor method should return a hasone() relation
 
@@ -74,8 +72,6 @@ You can do several things to narrow a search:
 
 (You can use octothorpe or period instead of paamayim nekudotayim.)
 
-When searching for a member, the bot will find only types that define the member, not
-those that inherit it. (There would be too many matches otherwise.) So if your search
-specifies both type and member names then only matching types defining (not inheriting)
-the member are found.
-
+When searching for a member, unless a type name is included in teh keyword, the bot
+will find only types that define the member, not those that inherit it. There would
+be too many matches otherwise.
