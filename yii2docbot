@@ -1,2 +1,3 @@
 #!/bin/sh
-`which node || which nodejs` --harmony --use-strict yii2docbot.js $@
+cd "${0%/*}"
+`which node || which nodejs` --harmony --use-strict ./yii2docbot.js $@
