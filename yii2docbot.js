@@ -1,6 +1,6 @@
 'use strict';
 
-var docbot,
+var getBot,
     optionsRe,
     config = {},
     options = {
@@ -22,7 +22,7 @@ var docbot,
      * @see http://www.yiiframework.com/doc-2.0/ext-apidoc-index.html
      * @see https://github.com/tom--/yii2-apidoc
      *
-     * @param {String} types File path to the JSON output from yii2-apidoc.
+     * @param {String} types The output JSON document from yii2-apidoc.
      */
     indexTypes = function (types) {
         /**
@@ -43,20 +43,20 @@ var docbot,
          *   - definedBy: The fully-qualified name of the class that defines the item
          *
          * Thus, for example, one of the entries in index might look like:
-         {
-             ...
-             "query": [
-                 {"name": "yii\\db\\Query",
-                  "desc": "Query represents a SELECT SQL statement in a way that is independent of DBMS."},
-                 {"name": "yii\\data\\ActiveDataProvider::$query",
-                  "desc": "The query that is used to fetch data models and [[totalCount]]\nif it is not explicitly set.",
-                  "definedBy": "yii\\data\\ActiveDataProvider"},
-                 {"name": "yii\\db\\Command::query()",
-                  "desc": "Executes the SQL statement and returns query result.",
-                  "definedBy": "yii\\db\\Command"}
-             ],
-             ...
-         }
+             {
+                 ...
+                 "query": [
+                     {"name": "yii\\db\\Query",
+                      "desc": "Query represents a SELECT SQL statement in a way that is independent of DBMS."},
+                     {"name": "yii\\data\\ActiveDataProvider::$query",
+                      "desc": "The query that is used to fetch data models and [[totalCount]]\nif it is not explicitly set.",
+                      "definedBy": "yii\\data\\ActiveDataProvider"},
+                     {"name": "yii\\db\\Command::query()",
+                      "desc": "Executes the SQL statement and returns query result.",
+                      "definedBy": "yii\\db\\Command"}
+                 ],
+                 ...
+             }
          *
          */
         var index = {},
@@ -120,7 +120,7 @@ var docbot,
                 var answers;
                 try {
                     console.log(Date.millinow() + "\n");
-                    answers = docbot().bot('nick', cmd);
+                    answers = getBot().bot('nick', cmd);
                 } catch (err) {
                     console.error('Error:', err);
                 }
@@ -134,7 +134,6 @@ var docbot,
 
     /**
      * Start an IRC client and add a listener that calls the Yii 2 doc bot.
-     *
      * @param {Object} options The main script options object.
      */
     ircBot = function (options) {
@@ -143,7 +142,7 @@ var docbot,
             reply = function (to) {
                 return function (from, message) {
                     var answers;
-                    answers = docbot().bot(from, message);
+                    answers = getBot().bot(from, message);
                     if (answers && answers.length > 0) {
                         answers.map(function (answer) {
                             client.say(to || from, answer);
@@ -184,6 +183,10 @@ var docbot,
             .addListener('pm', reply());
     };
 
+/**
+ * Add a method to Date that returns logging timestamps.
+ * @returns {string}
+ */
 Date.millinow = function () {
     var now = new Date();
     function pad(number) {
@@ -200,6 +203,7 @@ Date.millinow = function () {
         'Z';
 };
 
+// look for --config=path in args and load the (JSON) file into config object
 process.argv.some(function (arg) {
     var matches = arg.match(/^--config=(.+)$/);
     if (matches) {
@@ -208,12 +212,14 @@ process.argv.some(function (arg) {
     }
 });
 
+// config file options override the hard-coded defaults
 Object.keys(config).map(function (key) {
     if (options.hasOwnProperty(key)) {
         options[key] = config[key];
     }
 });
 
+// finally, each option can overridden from command line
 // Note: not escaping the option names.
 optionsRe = new RegExp('^--(' + Object.keys(options).join('|') + ')(?:=(.+))?$');
 process.argv.map(function (arg) {
@@ -228,9 +234,9 @@ process.argv.map(function (arg) {
 // --test was specified.
 options.botPath = require.resolve(options.botPath);
 
-// Create a function docbot() that returns the bot function, reloading the bot module
-// eact time it is called if the --test option was set.
-docbot = (function (options) {
+// Create a a bot-getter function that returns the bot function, reloading
+// the bot module each time it is called if the --test option was set.
+getBot = (function (options) {
     var bot;
     return function () {
         if (!bot || options.test) {
@@ -246,6 +252,7 @@ if (options.types) {
     indexTypes(require(options.types));
 }
 
+// Start the bot either in a REPL or as an IRC client.
 if (options.repl) {
     replBot();
 } else {
