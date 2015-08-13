@@ -58,7 +58,7 @@ exports.bot = function (from, message) {
             },
 
             help: function () {
-                return 'https://bitbucket.org/thefsb/yii2docbot/src#markdown-header-using-the-bot';
+                return 'https://github.com/yiisoft/ircbot#using-the-bot';
             },
 
             gillette: function () {

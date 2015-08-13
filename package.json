@@ -1,6 +1,6 @@
 {
     "name": "ircbot",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "license" : "(ISC OR GPL-3.0)",
     "author": {
         "name": "Tom Worster",
