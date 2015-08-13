@@ -1,0 +1,23 @@
+{
+    "name": "ircbot",
+    "version": "1.0.0",
+    "license" : "(ISC OR GPL-3.0)",
+    "author": {
+        "name": "Tom Worster",
+        "email": "fsb@thefsb.org"
+    },
+    "repository": "yiisoft/ircbot",
+    "files": [
+        ".gitignore",
+        "bot.js",
+        "botState.js",
+        "yii2docbot",
+        "yii2docbot.js"
+    ],
+    "engines" : {
+        "node" : ">=0.12"
+    },
+    "dependencies": {
+        "tom--": "~0.3"
+    }
+}
