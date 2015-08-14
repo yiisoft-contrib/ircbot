@@ -72,7 +72,7 @@ You can do several things to narrow a search:
 
 (You can use octothorpe or period instead of paamayim nekudotayim.)
 
-When searching for a member, unless a type name is included in teh keyword, the bot
+When searching for a member, unless a type name is included in the keyword, the bot
 will find only types that define the member, not those that inherit it. There would
 be too many matches otherwise.
 
