@@ -75,3 +75,21 @@ You can do several things to narrow a search:
 When searching for a member, unless a type name is included in teh keyword, the bot
 will find only types that define the member, not those that inherit it. There would
 be too many matches otherwise.
+
+
+### License
+
+Copyright 2015 Tom Worster fsb@thefsb.org
+
+yii2docbot is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+yii2docbot is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with yii2docbot.  If not, see <http://www.gnu.org/licenses/>.

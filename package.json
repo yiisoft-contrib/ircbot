@@ -1,7 +1,7 @@
 {
-    "name": "ircbot",
+    "name": "yii2docbot",
     "version": "1.0.1",
-    "license" : "(ISC OR GPL-3.0)",
+    "license" : "GPL-3.0",
     "author": {
         "name": "Tom Worster",
         "email": "fsb@thefsb.org"
