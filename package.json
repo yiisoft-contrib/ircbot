@@ -18,6 +18,6 @@
         "node" : ">=0.12"
     },
     "dependencies": {
-        "tom--": "~0.3"
+        "irc": "tom--/node-irc"
     }
 }
