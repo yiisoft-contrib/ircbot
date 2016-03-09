@@ -1,23 +1,23 @@
 {
-    "name": "yii2docbot",
-    "version": "1.0.2",
-    "license" : "GPL-3.0",
-    "author": {
-        "name": "Tom Worster",
-        "email": "fsb@thefsb.org"
-    },
-    "repository": "yiisoft/ircbot",
-    "files": [
-        ".gitignore",
-        "bot.js",
-        "botState.js",
-        "yii2docbot",
-        "yii2docbot.js"
-    ],
-    "engines" : {
-        "node" : ">=0.12"
-    },
-    "dependencies": {
-        "irc": "tom--/node-irc"
-    }
+  "name": "yii2docbot",
+  "version": "1.0.2",
+  "license": "GPL-3.0",
+  "author": {
+    "name": "Tom Worster",
+    "email": "fsb@thefsb.org"
+  },
+  "repository": "yiisoft/ircbot",
+  "files": [
+    ".gitignore",
+    "bot.js",
+    "botState.js",
+    "yii2docbot",
+    "yii2docbot.js"
+  ],
+  "engines": {
+    "node": ">=0.12"
+  },
+  "dependencies": {
+    "irc": "^0.4.1"
+  }
 }

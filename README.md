@@ -20,10 +20,6 @@ Default options’ values are at the top of the yii2docbot.js script. The option
 is first extended by the file botrc.json, if it exists, and then by command line options.
 botrc.json should contain a single JSON object of option-value pairs.
 
-The JavaScript is ES6 (Harmony) and I use strict mode in the .js files. The `node-irc`
-dependency uses octal literals in a couple of places which are not allowed in strict ES6.
-My [PR](https://github.com/martynsmith/node-irc/pull/368) to correct these awaits
-attention so for now the package.json specifies my fork.
 
 ### Using the bot
 
