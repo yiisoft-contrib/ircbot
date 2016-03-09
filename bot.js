@@ -324,7 +324,7 @@ exports.bot = function (from, message) {
     state.recentSnoops.flush();
     words.map(function (word) {
         // Trim period and comma at end of word
-        word = word.replace(/[\.,]+$/, '');
+        word = word.replace(/[.,!?]+$/, '');
         [
             // Trigger chars at the start of a keyword. Don't capture the trigger
             /^[!`·˙]([\w:#\.\\\(\)\$]+)$/,
