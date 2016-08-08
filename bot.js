@@ -25,9 +25,10 @@
  *
  * @param {String} from IRC nick of the message sender
  * @param {String} message IRC message to process
+ * @param {String} channel IRC channel
  * @returns {String[]|undefined} One or more bot response messages
  */
-exports.bot = function (from, message) {
+exports.bot = function (from, message, channel) {
 
     var docs = require('./docs.json'),
         state = require('./botState'),
@@ -350,8 +351,8 @@ exports.bot = function (from, message) {
             matches = word.match(re);
             if (matches) {
                 answer = commands.s([matches[1]]);
-                if (answer && !state.recentSnoops.isRecent(matches[1])) {
-                    state.recentSnoops.add(matches[1]);
+                if (answer && !state.recentSnoops.isRecent(channel + matches[1])) {
+                    state.recentSnoops.add(channel + matches[1]);
                     answers.push(answer);
                     return false;
                 }

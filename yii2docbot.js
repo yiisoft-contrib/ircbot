@@ -141,7 +141,7 @@ var getBot,
                 var answers;
                 try {
                     console.log(Date.millinow() + "\n");
-                    answers = getBot().bot('nick', cmd);
+                    answers = getBot().bot('nick', cmd, '');
                 } catch (err) {
                     console.error('Error:', err);
                 }
@@ -163,7 +163,7 @@ var getBot,
             reply = function (to) {
                 return function (from, message) {
                     var answers;
-                    answers = getBot().bot(from, message);
+                    answers = getBot().bot(from, message, to || '');
                     if (answers && answers.length > 0) {
                         answers.map(function (answer) {
                             client.say(to || from, answer);
