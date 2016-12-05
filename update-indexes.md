@@ -35,4 +35,6 @@ in gillette repo dir
     git status
     # git whatever to git the repo up-to-date
 
+    ./yii2docbot --types=../yii2-apidoc/output/types.json --repl
     
+deploy and run the updated bot
