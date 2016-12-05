@@ -24,7 +24,7 @@
 exports.recentSnoops = (function () {
     var snoopsAnswered = {},
         // miliseconds
-        maxAge = 180000;
+        maxAge = 300000;
     return {
         isRecent: function (snoop) {
             return snoopsAnswered[snoop] && (snoopsAnswered[snoop] + maxAge > Date.now());
