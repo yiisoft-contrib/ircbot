@@ -128,7 +128,13 @@ var getBot,
         });
 
         // Write the documentation index to a JSON file.
-        require('fs').writeFile('./docs.json', JSON.stringify(index, null, '  '));
+        require('fs').writeFile('./docs.json', JSON.stringify(index, null, '  '), function (err) {
+            if (err) {
+                console.error('Error:', err);
+            }
+
+            console.log('Saved index to: ./docs.json')
+        });
     },
 
     /**
