@@ -89,6 +89,9 @@ var getBot,
              * @param {Object} item The phpdoc object for the API item to add
              */
             addLeaf = function (kind, typeName, item) {
+                if (!item.name) {
+                    return;
+                }
                 var keyword = item.name.match(/\w+$/)[0].replace(/_/g, '').toLowerCase(),
                     leaf = {
                         name: typeName,
